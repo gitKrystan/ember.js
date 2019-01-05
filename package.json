@@ -95,7 +95,7 @@
     "@glimmer/node": "^0.37.0",
     "@glimmer/opcode-compiler": "^0.37.0",
     "@glimmer/program": "^0.37.0",
-    "@glimmer/reference": "^0.37.0",
+    "@glimmer/reference": "^0.38.0",
     "@glimmer/runtime": "^0.37.0",
     "@types/qunit": "^2.5.3",
     "@types/rsvp": "^4.0.2",
