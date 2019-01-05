@@ -92,7 +92,7 @@
     "@glimmer/compiler": "^0.37.0",
     "@glimmer/env": "^0.1.7",
     "@glimmer/interfaces": "^0.37.0",
-    "@glimmer/node": "^0.37.0",
+    "@glimmer/node": "^0.38.0",
     "@glimmer/opcode-compiler": "^0.37.0",
     "@glimmer/program": "^0.37.0",
     "@glimmer/reference": "^0.37.0",
