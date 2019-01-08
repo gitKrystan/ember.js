@@ -91,13 +91,16 @@ import { ACTION, INVOKE, UnboundReference } from '../utils/references';
   method. The first argument to `sendAction` is the action to be called, and
   additional arguments are passed to the action function. This has interesting
   properties combined with currying of arguments. For example:
+  
+  ```app/templates/components/my-component.hbs
+  {{input on-input=(action (action 'setName' model) value="target.value")}}
+  ```
 
   ```app/components/my-component.js
   import Component from '@ember/component';
 
   export default Component.extend({
     actions: {
-      // Usage {{input on-input=(action (action 'setName' model) value="target.value")}}
       setName(model, name) {
         model.set('name', name);
       }
