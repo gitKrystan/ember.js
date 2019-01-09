@@ -42,7 +42,7 @@ class InsertAtTests extends AbstractTestCase {
     let obj = this.newObject([]);
     let that = this;
 
-    this.assert.throws(() => obj.insertAt(200, that.newFixture(1)[0]), Error);
+    expectAssertion(() => obj.insertAt(200, that.newFixture(1)[0]), Error);
   }
 
   '@test [A].insertAt(0, X) => [X,A] + notify'() {
