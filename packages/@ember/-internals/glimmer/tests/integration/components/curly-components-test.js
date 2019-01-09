@@ -9,14 +9,16 @@ import {
   equalsElement,
   styles,
   runTask,
+  runLoopSettled,
 } from 'internal-test-helpers';
 
-import { run } from '@ember/runloop';
+import { run, next } from '@ember/runloop';
 import { DEBUG } from '@glimmer/env';
 import { set, get, observer, on, computed } from '@ember/-internals/metal';
 import Service, { inject as injectService } from '@ember/service';
 import { Object as EmberObject, A as emberA } from '@ember/-internals/runtime';
 import { jQueryDisabled } from '@ember/-internals/views';
+import { oneWay } from '@ember/object/computed';
 
 import { Component, compile, htmlSafe } from '../../utils/helpers';
 
@@ -3575,6 +3577,91 @@ moduleFor(
       this.registerComponent('foo-bar', { ComponentClass: FooBarComponent });
 
       this.render('{{foo-bar}}');
+    }
+
+    // http://localhost:4201/tests/index.html?skipPackage=container%2Cember-testing%2C%40ember%2Fdebug&dist=prod&filter=17243
+
+    ['@test it does stuff [GH#17243]']() {
+      function call(fnKey, ...argKeys) {
+        return computed(fnKey, ...argKeys, function() {
+          let fn = this.get(fnKey);
+
+          if (!fn) {
+            return;
+          }
+
+          let args = argKeys.map(k => this.get(k));
+
+          return fn.apply(this, args);
+        });
+      }
+
+      let TimeExplorer = Component.extend({
+        range: null,
+        domain: null,
+        plotWidth: 800,
+
+        xScale: computed('plotWidth', 'domain', function() {
+          return value => value * this.plotWidth + this.domain;
+        }),
+
+        rangeX1: call('xScale', 'range.start'),
+        rangeX2: call('xScale', 'range.end'),
+
+        x1: oneWay('rangeX1'),
+        x2: oneWay('rangeX2'),
+
+        init() {
+          this._super(...arguments);
+          this.changeDomain(5);
+        },
+
+        didInsertElement() {
+          next(() => this.measurePlot());
+        },
+
+        measurePlot() {
+          if (this.isDestroyed) {
+            return;
+          }
+
+          this.setProperties({
+            plotWidth: 500,
+          });
+        },
+
+        changeDomain(value) {
+          this.set('domain', value);
+        },
+      });
+
+      let XBrush = Component.extend({
+        x1: null,
+        x2: null,
+      });
+
+      this.registerComponent('time-explorer', {
+        ComponentClass: TimeExplorer,
+        template: '{{x-brush x1=x1 x2=x2}}',
+      });
+
+      this.registerComponent('x-brush', {
+        ComponentClass: XBrush,
+        template: '[x1:{{x1}}][x2:{{x2}}]',
+      });
+
+      this.render('{{time-explorer range=model}}', {
+        model: {
+          start: 1,
+          end: 2,
+        },
+      });
+
+      this.assertText('[x1:805][x2:1605]');
+
+      return runLoopSettled().then(() => {
+        this.assertText('[x1:505][x2:1005]');
+      });
     }
   }
 );
