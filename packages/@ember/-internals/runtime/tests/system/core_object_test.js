@@ -1,5 +1,13 @@
 import { getOwner, setOwner } from '@ember/-internals/owner';
-import { get, set, observer } from '@ember/-internals/metal';
+import {
+  get,
+  set,
+  observer,
+  alias,
+  tagForProperty,
+  addObserver,
+  removeObserver,
+} from '@ember/-internals/metal';
 import CoreObject from '../../lib/system/core_object';
 import { moduleFor, AbstractTestCase, buildOwner } from 'internal-test-helpers';
 
@@ -128,6 +136,45 @@ moduleFor(
       assert.deepEqual(Object.keys(test).sort(), ['anotherProp', 'id', 'myProp']);
 
       assert.equal(callCount, 1);
+    }
+
+    ['@test unbalanced watch count'](assert) {
+      let Watcher = CoreObject.extend({
+        lol: alias('inner.farfignugent')
+      });
+
+      let Test = CoreObject.extend({
+        farfignugent: alias('bar')
+      });
+
+      let test = Test.create();
+      let tag = tagForProperty(test, 'farfignugent');
+      let tagValue = null;
+
+      function assertTagChanged() {
+        let newValue = tag.value();
+        assert.notEqual(newValue, tagValue);
+        tagValue = newValue;
+      }
+
+      assertTagChanged();
+
+      assert.equal(get(test, 'farfignugent'), undefined);
+
+      let watcher = Watcher.create({ inner: test });
+      assert.equal(get(watcher, 'lol'), undefined);
+
+      set(test, 'bar', 10);
+      assertTagChanged();
+      assert.equal(get(test, 'farfignugent'), 10);
+      assert.equal(get(watcher, 'lol'), 10);
+
+      set(watcher, 'inner', null);
+      assert.equal(get(watcher, 'lol'), undefined);
+
+      set(test, 'bar', 20);
+      assertTagChanged();
+      assert.equal(get(test, 'farfignugent'), 20);
     }
   }
 );

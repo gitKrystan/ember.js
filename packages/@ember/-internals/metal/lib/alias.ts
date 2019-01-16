@@ -27,43 +27,50 @@ export class AliasedProperty extends Descriptor implements DescriptorWithDepende
     super();
     this.altKey = altKey;
     this._dependentKeys = [altKey];
+    this._didAddInSetup = false;
   }
 
   setup(obj: object, keyName: string, meta: Meta): void {
     assert(`Setting alias '${keyName}' on self`, this.altKey !== keyName);
+    console.log('setup', obj, keyName, meta.peekWatching(this.altKey));
     super.setup(obj, keyName, meta);
     if (meta.peekWatching(keyName) > 0) {
       this.consume(obj, keyName, meta);
     }
+    console.log('after setup', obj, keyName, meta.peekWatching(this.altKey));
   }
 
   teardown(obj: object, keyName: string, meta: Meta): void {
-    this.unconsume(obj, keyName, meta);
+    console.log('teardown', obj, keyName, meta.peekWatching(this.altKey));
+    let cache = getCacheFor(obj);
+    if (cache.get(keyName) === CONSUMED || meta.peekWatching(keyName) > 0) {
+      cache.delete(keyName);
+      removeDependentKeys(this, obj, keyName, meta);
+    }
     super.teardown(obj, keyName, meta);
+    console.log('after teardown', obj, keyName, meta.peekWatching(this.altKey));
   }
 
   willWatch(obj: object, keyName: string, meta: Meta): void {
+    debugger;
+    console.log('willWatch', obj, keyName, meta.peekWatching(this.altKey));
     this.consume(obj, keyName, meta);
+    console.log('after willWatch', obj, keyName, meta.peekWatching(this.altKey));
   }
 
   didUnwatch(obj: object, keyName: string, meta: Meta): void {
-    this.unconsume(obj, keyName, meta);
+    console.log('didUnwatch', obj, keyName, meta.peekWatching(this.altKey));
+  //   removeDependentKeys(this, obj, keyName, meta);
+  //   console.log('after didUnwatch', obj, keyName, meta.peekWatching(this.altKey));
   }
 
   get(obj: object, keyName: string): any {
+    let meta = metaFor(obj);
+    console.log('get', obj, keyName, meta.peekWatching(this.altKey));
     let ret = get(obj, this.altKey);
     this.consume(obj, keyName, metaFor(obj));
+    console.log('after get', obj, keyName, meta.peekWatching(this.altKey));
     return ret;
-  }
-
-  unconsume(obj: object, keyName: string, meta: Meta): void {
-    let wasConsumed = getCachedValueFor(obj, keyName) === CONSUMED;
-    if (wasConsumed || meta.peekWatching(keyName) > 0) {
-      removeDependentKeys(this, obj, keyName, meta);
-    }
-    if (wasConsumed) {
-      getCacheFor(obj).delete(keyName);
-    }
   }
 
   consume(obj: object, keyName: string, meta: Meta): void {

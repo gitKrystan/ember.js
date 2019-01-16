@@ -1,3 +1,20 @@
+/*
+
+setup + peekwatching = 0 => noop
+get => addDepKey (ref count = 1)
+get => noop (ref count = 1)
+willWatch => noop (ref count = 1) (would have been addDepKey, ref count = 2)
+didUnwatch => removeDepKey (ref count = 0) (would have been removeDepKey, ref count = 1)
+
+
+
+
+
+*/
+
+
+
+
 import {
   alias,
   defineProperty,
@@ -7,6 +24,7 @@ import {
   addObserver,
   removeObserver,
   tagFor,
+  tagForProperty
 } from '..';
 import { meta } from '@ember/-internals/meta';
 import { moduleFor, AbstractTestCase } from 'internal-test-helpers';
@@ -14,6 +32,7 @@ import { moduleFor, AbstractTestCase } from 'internal-test-helpers';
 let obj, count;
 
 function incrementCount() {
+  debugger;
   count++;
 }
 
@@ -163,6 +182,43 @@ moduleFor(
       set(obj, 'foo.faz', 'great');
 
       assert.equal(count, 2);
+    }
+
+    ['@test unbalanced watch count'](assert) {
+      let watcher = {};
+      defineProperty(watcher, 'lol', alias('inner.farfignugent'));
+
+      let test = {};
+      defineProperty(test, 'farfignugent', alias('bar'));
+
+      let tag = tagForProperty(test, 'farfignugent');
+      let tagValue = null;
+
+      function assertTagChanged() {
+        let newValue = tag.value();
+        assert.notEqual(newValue, tagValue);
+        tagValue = newValue;
+      }
+
+      assertTagChanged();
+
+      assert.equal(get(test, 'farfignugent'), undefined);
+
+      set(watcher, 'inner', test);
+      assert.equal(get(watcher, 'lol'), undefined);
+
+      set(test, 'bar', 10);
+      assertTagChanged();
+      assert.equal(get(test, 'farfignugent'), 10);
+      assert.equal(get(watcher, 'lol'), 10);
+
+      set(watcher, 'inner', null);
+      assert.equal(get(watcher, 'lol'), undefined);
+
+      set(test, 'bar', 20);
+      assertTagChanged();
+      assert.equal(get(test, 'farfignugent'), 20);
+
     }
   }
 );
